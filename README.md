@@ -1,4 +1,5 @@
 # Fail2ban Admin (Flask)
+![fail2ban](./1-fail2ban-flask.png)
 
 Application web Flask pour administrer Fail2ban de façon simple et sécurisée.
 
