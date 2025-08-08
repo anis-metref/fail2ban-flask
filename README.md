@@ -13,7 +13,7 @@ Fonctionnalités principales:
 - Authentification: login/logout
 
 
-## Installation (dev/test)
+## Installation 
 Pré‑requis: Python 3.10+.
 python-pip, python-venv, fail2ban 
 
