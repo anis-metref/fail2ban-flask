@@ -42,7 +42,7 @@ cp .env.example  .env
 python3 app.py
 ```
 
-Ouvrir: http://localhost:5000/login
+Ouvrir: 'http://localhost:5000/login'
 - Identifiants: admin / admin
 - Après connexion, allez dans Profil pour changer le mot de passe.
 
