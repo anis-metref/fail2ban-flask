@@ -25,7 +25,7 @@ pip install -r requirements.txt
 Copier le fichier .env.example pour ajuster certains paramètres des variables d’environnement.
 
 ```
-cp .env.example .env
+cp .env.example  .env
 ```
 
 ## Variables d’environnement
