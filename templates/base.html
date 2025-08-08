@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fail2ban Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+      body { font-family: 'Inter', sans-serif; background-color: #1a202c; color: #e2e8f0; }
+    </style>
+  </head>
+  <body class="min-h-screen">
+    <!-- Top navigation -->
+    <nav class="bg-gray-900 border-b border-gray-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex h-14 items-center justify-between">
+          <div class="flex items-center space-x-6">
+            <a class="text-white font-semibold" href="/dashboard">Fail2ban Admin</a>
+          </div>
+          <!-- Mobile hamburger -->
+          <button id="navToggle" class="sm:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 focus:outline-none" aria-controls="primary-nav" aria-expanded="false">
+            <span class="material-icons">menu</span>
+          </button>
+          <!-- Desktop nav -->
+          <div class="hidden sm:flex items-center space-x-6" id="primary-nav">
+            {% if current_user.is_authenticated %}
+            <a class="text-gray-300 hover:text-white" href="/dashboard">Dashboard</a>
+            <a class="text-gray-300 hover:text-white" href="/jails">Jails</a>
+            <a class="text-gray-300 hover:text-white" href="/ssh/analysis">Analyse SSH</a>
+            <a class="text-gray-300 hover:text-white" href="/config">Configuration</a>
+            {% endif %}
+            <span class="text-gray-600">|</span>
+            {% if current_user.is_authenticated %}
+            <a class="text-gray-300 hover:text-white" href="/profile">Profil</a>
+            <a class="text-gray-300 hover:text-white" href="/logout">Déconnexion</a>
+            {% else %}
+            <a class="text-gray-300 hover:text-white" href="/login">Connexion</a>
+            {% endif %}
+          </div>
+        </div>
+        <!-- Mobile panel -->
+        <div id="mobile-panel" class="sm:hidden hidden pb-3">
+          <div class="space-y-1">
+            {% if current_user.is_authenticated %}
+            <a class="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded" href="/dashboard">Dashboard</a>
+            <a class="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded" href="/jails">Jails</a>
+            <a class="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded" href="/ssh/analysis">Analyse SSH</a>
+            <a class="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded" href="/config">Configuration</a>
+            <div class="border-t border-gray-800 my-2"></div>
+            <a class="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded" href="/profile">Profil</a>
+            <a class="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded" href="/logout">Déconnexion</a>
+            {% else %}
+            <a class="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded" href="/login">Connexion</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </nav>
+    <script>
+      (function(){
+        const btn = document.getElementById('navToggle');
+        const panel = document.getElementById('mobile-panel');
+        if(btn && panel){
+          btn.addEventListener('click', function(){
+            const isHidden = panel.classList.contains('hidden');
+            if(isHidden){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+            else { panel.classList.add('hidden'); btn.setAttribute('aria-expanded','false'); }
+          });
+        }
+      })();
+    </script>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="space-y-2 mb-4">
+          {% for category, message in messages %}
+            {% set color = 'blue' %}
+            {% if category == 'success' %}{% set color = 'green' %}{% elif category == 'warning' %}{% set color = 'yellow' %}{% elif category == 'danger' %}{% set color = 'red' %}{% endif %}
+            <div class="rounded border p-3 bg-opacity-10 border-{{ color }}-600 bg-{{ color }}-900/30 text-{{ color }}-200">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

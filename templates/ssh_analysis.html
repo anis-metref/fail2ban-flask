@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Analyse SSH</h1>
+<form class="flex flex-wrap gap-2 mb-4" method="get">
+  <input class="px-3 py-2 rounded bg-gray-900 border border-gray-700 text-white" type="text" name="since" value="{{ since }}" placeholder="since (ex: 24 hours ago)">
+  <button class="px-3 py-2 rounded bg-blue-600 text-white" type="submit">Rafraîchir</button>
+</form>
+
+<!-- KPIs -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+  <div class="rounded border border-gray-700 p-4">
+    <div class="text-sm text-gray-400">Échecs</div>
+    <div class="text-2xl font-semibold text-white">{{ data.totals.failed or 0 }}</div>
+  </div>
+  <div class="rounded border border-gray-700 p-4">
+    <div class="text-sm text-gray-400">Acceptés</div>
+    <div class="text-2xl font-semibold text-white">{{ data.totals.accepted or 0 }}</div>
+  </div>
+  <div class="rounded border border-gray-700 p-4">
+    <div class="text-sm text-gray-400">Invalid user</div>
+    <div class="text-2xl font-semibold text-white">{{ data.totals.invalid or 0 }}</div>
+  </div>
+  <div class="rounded border border-gray-700 p-4">
+    <div class="text-sm text-gray-400">Autres</div>
+    <div class="text-2xl font-semibold text-white">{{ data.totals.other or 0 }}</div>
+  </div>
+</div>
+
+<!-- Tables Top -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  <div class="rounded border border-gray-700">
+    <div class="p-4">
+      <h2 class="text-lg font-semibold mb-2">Top IP (échecs)</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-left text-sm">
+          <thead>
+            <tr class="text-gray-400">
+              <th class="py-2">IP</th>
+              <th class="py-2 text-right">Échecs</th>
+              <th class="py-2 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ip, count in data.top_failed_ips %}
+            <tr class="border-t border-gray-700">
+              <td class="py-2 font-mono">{{ ip }}</td>
+              <td class="py-2 text-right">{{ count }}</td>
+              <td class="py-2 text-right">
+                {% if jails %}
+                <div class="flex flex-wrap gap-2 justify-end">
+                  {% for j in jails %}
+                  <form method="post" action="{{ url_for('ban_ip', jail=j) }}" onsubmit="return confirm('Bannir {{ ip }} dans {{ j }} ?');">
+                    <input type="hidden" name="ip" value="{{ ip }}">
+                    <button type="submit" class="px-2 py-1 rounded border border-red-600 text-red-400 hover:bg-red-600/20 text-xs">Ban {{ j }}</button>
+                  </form>
+                  {% endfor %}
+                </div>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="rounded border border-gray-700">
+    <div class="p-4">
+      <h2 class="text-lg font-semibold mb-2">Top IP (acceptés)</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-left text-sm">
+          <thead>
+            <tr class="text-gray-400">
+              <th class="py-2">IP</th>
+              <th class="py-2 text-right">Acceptés</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ip, count in data.top_accepted_ips %}
+            <tr class="border-t border-gray-700">
+              <td class="py-2 font-mono">{{ ip }}</td>
+              <td class="py-2 text-right">{{ count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tables Users -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+  <div class="rounded border border-gray-700">
+    <div class="p-4">
+      <h2 class="text-lg font-semibold mb-2">Top utilisateurs (échecs)</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-left text-sm">
+          <thead>
+            <tr class="text-gray-400">
+              <th class="py-2">Utilisateur</th>
+              <th class="py-2 text-right">Échecs</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user, count in data.top_failed_users %}
+            <tr class="border-t border-gray-700">
+              <td class="py-2">{{ user }}</td>
+              <td class="py-2 text-right">{{ count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="rounded border border-gray-700">
+    <div class="p-4">
+      <h2 class="text-lg font-semibold mb-2">Top utilisateurs (acceptés)</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-left text-sm">
+          <thead>
+            <tr class="text-gray-400">
+              <th class="py-2">Utilisateur</th>
+              <th class="py-2 text-right">Acceptés</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user, count in data.top_accepted_users %}
+            <tr class="border-t border-gray-700">
+              <td class="py-2">{{ user }}</td>
+              <td class="py-2 text-right">{{ count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Derniers événements -->
+<div class="rounded border border-gray-700 mt-4">
+  <div class="p-4">
+    <h2 class="text-lg font-semibold mb-2">Derniers événements</h2>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-left text-sm table-fixed">
+        <colgroup>
+          <col class="w-36 sm:w-44 md:w-52"/>
+          <col class="w-24"/>
+          <col class="w-32"/>
+          <col class="w-32"/>
+          <col />
+        </colgroup>
+        <thead>
+          <tr class="text-gray-400">
+            <th class="py-2">Horodatage</th>
+            <th class="py-2">Type</th>
+            <th class="py-2">Utilisateur</th>
+            <th class="py-2">IP</th>
+            <th class="py-2">Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ev in data.events %}
+          <tr class="border-t border-gray-700">
+            <td class="py-2 whitespace-nowrap">{{ ev.ts }}</td>
+            <td class="py-2">{{ ev.type }}</td>
+            <td class="py-2">{{ ev.user or '' }}</td>
+            <td class="py-2 whitespace-nowrap">{{ ev.ip or '' }}</td>
+            <td class="py-2 font-mono">{{ ev.message }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

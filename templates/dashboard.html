@@ -1,0 +1,531 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+  <h1 class="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+  <form id="since-form" class="w-full sm:w-auto flex items-center gap-2">
+    <select id="since-select" name="since" class="flex-1 sm:flex-none w-full sm:w-auto bg-gray-900 text-gray-300 px-3 py-2 rounded-md border border-gray-700">
+      {% set choices = { '1h':'Dernière heure', '6h':'6 heures', '24h':'24 heures', '7d':'7 jours' } %}
+      {% for k, label in choices.items() %}
+      <option value="{{ k }}" {% if since == k %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button class="hidden sm:inline-block bg-blue-600 text-white px-4 py-2 rounded-md font-semibold" type="submit">Appliquer</button>
+  </form>
+</div>
+
+<!-- Summary cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+  <div class="bg-gray-900 p-6 rounded-xl flex items-center justify-between">
+    <div>
+      <p id="card-jails" class="text-4xl font-bold">{{ f2b.jails|length }}</p>
+      <p class="text-gray-400">Jails</p>
+    </div>
+    <span class="material-icons text-gray-500 text-3xl">domain_verification</span>
+  </div>
+  <div class="bg-blue-600 p-6 rounded-xl text-white flex items-center justify-between">
+    <div>
+      {% set cur_banned = f2b.metrics.values()|map(attribute='currently_banned')|sum if f2b.metrics else 0 %}
+      <p id="card-currently-banned" class="text-4xl font-bold">{{ cur_banned }}</p>
+      <p class="opacity-80">Currently banned</p>
+    </div>
+    <span class="material-icons text-3xl opacity-80">block</span>
+  </div>
+  <div class="bg-gray-900 p-6 rounded-xl flex items-center justify-between">
+    <div>
+      <p id="card-failed" class="text-4xl font-bold text-red-500">{{ (data.totals.failed or 0) if data.totals else 0 }}</p>
+      <p class="text-gray-400">Failed attempts (période)</p>
+    </div>
+    <span class="material-icons text-gray-500 text-3xl">hourglass_empty</span>
+  </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <style>@media (max-width: 640px){ .overflow-x-auto{ -webkit-overflow-scrolling: touch; } }</style>
+  <!-- Alert line chart -->
+  <div class="lg:col-span-2 bg-gray-900 p-6 rounded-xl">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold">Activité SSH dans le temps (échecs vs acceptés)</h2>
+      <div class="flex items-center gap-2 text-sm">
+        <span class="text-gray-400">Affichage:</span>
+        <button id="toggleStackBtn" class="px-2 py-1 rounded border border-gray-600 text-gray-200 hover:bg-gray-700/50">Barres empilées</button>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="alertChart"></canvas>
+    </div>
+  </div>
+  
+  <!-- SSH Activity doughnut/pie -->
+  <div class="bg-gray-900 p-6 rounded-xl">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold">SSH activité</h2>
+      <div class="flex items-center gap-2 text-sm">
+        <span class="text-gray-400">Affichage:</span>
+        <button id="toggleFaAcTypeBtn" class="px-2 py-1 rounded border border-gray-600 text-gray-200 hover:bg-gray-700/50">Donut</button>
+      </div>
+    </div>
+    <div class="flex items-center justify-center">
+      <div class="relative w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64">
+        <canvas id="faAcDoughnut"></canvas>
+      </div>
+    </div>
+    <div id="faAcTotals" class="mt-4 text-center text-gray-300 text-sm"></div>
+    <div class="mt-3 grid grid-cols-1 gap-3">
+      <div>
+        <h3 class="text-sm text-gray-400 mb-1">Top IPs (Échecs)</h3>
+        <ul id="faAcTopFailed" class="space-y-1 text-sm"></ul>
+      </div>
+      <div>
+        <h3 class="text-sm text-gray-400 mb-1">Top IPs (Acceptés)</h3>
+        <ul id="faAcTopAccepted" class="space-y-1 text-sm"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+  <!-- Top failed bar chart with controls -->
+  <div class="lg:col-span-2 bg-gray-900 p-6 rounded-xl">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold">Top IP (échecs)</h2>
+      <div class="flex flex-wrap items-center gap-2 text-sm">
+        <span class="text-gray-400">Affichage:</span>
+        <button id="tfModeBarV" class="px-2 py-1 rounded border border-gray-600 text-gray-200 hover:bg-gray-700/50">Barres V</button>
+        <button id="tfModeBarH" class="px-2 py-1 rounded border border-gray-600 text-gray-200 hover:bg-gray-700/50">Barres H</button>
+        <button id="tfModeTable" class="px-2 py-1 rounded border border-gray-600 text-gray-200 hover:bg-gray-700/50">Tableau</button>
+        <span class="ml-3 text-gray-400">Échelle:</span>
+        <button id="tfScaleLin" class="px-2 py-1 rounded border border-gray-600 text-gray-200 hover:bg-gray-700/50">Linéaire</button>
+        <button id="tfScaleLog" class="px-2 py-1 rounded border border-gray-600 text-gray-200 hover:bg-gray-700/50">Log</button>
+        <span class="ml-3 text-gray-400">Top:</span>
+        <select id="tfTopN" class="bg-gray-900 text-gray-300 px-2 py-1 rounded border border-gray-700">
+          <option>5</option><option selected>10</option><option>20</option><option>50</option>
+        </select>
+      </div>
+    </div>
+    <div id="tfChartWrap" class="chart-wrap">
+      <canvas id="topFailedBar"></canvas>
+    </div>
+    <div id="tfTableWrap" class="hidden overflow-x-auto">
+      <table class="min-w-full text-left text-sm">
+        <thead>
+          <tr class="text-gray-400">
+            <th class="py-2">IP</th>
+            <th class="py-2 text-right">Échecs</th>
+          </tr>
+        </thead>
+        <tbody id="tfTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Top pays (liste avec drapeaux emoji) -->
+  <div class="bg-gray-900 p-6 rounded-xl">
+    <h2 class="text-xl font-semibold mb-4">Top pays (IP bannies)</h2>
+    <ul id="countriesList" class="space-y-2"></ul>
+  </div>
+</div>
+
+<!-- Map Row (optional) -->
+<div class="bg-gray-900 p-6 rounded-xl mt-6">
+  <h2 class="text-xl font-semibold mb-4">Carte des sources d'attaques</h2>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" />
+  <div id="map" style="height: 360px;"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="></script>
+</div>
+
+<!-- Banned IPs by jail -->
+<div class="bg-gray-900 p-6 rounded-xl mt-6" id="bannedByJailSection">
+  <h2 class="text-xl font-semibold mb-4">IPs bannies par jail</h2>
+  <div id="bannedByJail">
+    {% for j in f2b.jails %}
+    {% set m = f2b.metrics.get(j, {}) %}
+    {% if m.banned_list %}
+    <div class="mb-4">
+      <h3 class="font-semibold mb-2">{{ j }}</h3>
+      <ul class="flex flex-wrap gap-2">
+        {% for ip in m.banned_list[:10] %}
+        <li class="px-2 py-1 rounded bg-red-900/30 border border-red-700 text-red-300 text-xs">{{ ip }}</li>
+        {% endfor %}
+        {% if m.banned_list|length > 10 %}
+        <li class="px-2 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300 text-xs">+{{ m.banned_list|length - 10 }} autres</li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% if not f2b.jails or (f2b.jails|select('in', f2b.metrics)|map('attr', 'banned_list')|list|length == 0) %}
+    <p class="text-gray-300">Aucune IP bannie.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Jails table -->
+<div class="bg-gray-900 p-6 rounded-xl mt-6">
+  <h2 class="text-xl font-semibold mb-4">Jails</h2>
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-left text-sm">
+      <thead>
+        <tr class="text-gray-400">
+          <th class="py-2">Jail</th>
+          <th class="py-2 text-center">Currently</th>
+          <th class="py-2 text-center">Total</th>
+          <th class="py-2 text-center">Banned</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for j in f2b.jails %}
+        {% set m = f2b.metrics.get(j, {}) %}
+        <tr class="border-t border-gray-700">
+          <td class="py-2"><a href="{{ url_for('jail_detail', jail=j) }}" class="text-blue-400 hover:underline">{{ j }}</a></td>
+          <td class="py-2 text-center">{{ m.currently_failed or 0 }}</td>
+          <td class="py-2 text-center">{{ m.total_failed or 0 }}</td>
+          <td class="py-2 text-center">{{ m.currently_banned or 0 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  /* responsive chart wrapper: keep aspect ratio */
+  .chart-wrap{ position: relative; width: 100%; height: 260px; }
+  @media (max-width: 640px){ .chart-wrap{ height: 200px; } }
+</style>
+<script>
+(function(){
+  const initial = {{ {'data': data, 'geo_failed': geo_failed, 'geo_banned': geo_banned, 'series': series, 'f2b': f2b} | tojson }};
+  let currentSince = {{ since | tojson }};
+
+  // Helpers
+  function sum(arr){ return arr.reduce((a,b)=>a+(b||0),0); }
+
+  // Cards update
+  function updateCards(payload){
+    const f2b = payload.f2b || {jails:[], metrics:{}};
+    const jailsCount = (f2b.jails || []).length;
+    const curBanned = Object.values(f2b.metrics || {}).map(m=>m.currently_banned||0);
+    const failed = (payload.data && payload.data.totals && payload.data.totals.failed) || 0;
+    document.getElementById('card-jails').textContent = jailsCount;
+    document.getElementById('card-currently-banned').textContent = sum(curBanned);
+    document.getElementById('card-failed').textContent = failed;
+  }
+
+  // Line/Bar chart (SSH activity)
+  let alertChart=null;
+  let stackedMode=true; // default: stacked
+  function buildAlertOptions(){
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, labels: { color: '#a0aec0' } },
+        tooltip: {
+          callbacks: {
+            footer: (items) => {
+              if (!items || !items.length) return '';
+              const chart = items[0].chart;
+              const idx = items[0].dataIndex;
+              const ds = chart?.data?.datasets || [];
+              const total = ds.reduce((acc, d) => acc + (Number(d.data?.[idx]) || 0), 0);
+              // Build IP details from series.failed_ips / accepted_ips
+              const series = chart.__seriesPayload || {};
+              const fIPs = (series.failed_ips && series.failed_ips[idx]) ? series.failed_ips[idx] : [];
+              const aIPs = (series.accepted_ips && series.accepted_ips[idx]) ? series.accepted_ips[idx] : [];
+              function topTxt(items){
+                if(!items || !items.length) return '';
+                const top = items.slice(0,5).map(([ip,c]) => `${ip} (${c})`).join(', ');
+                return top ? `\nTop IPs: ${top}` : '';
+              }
+              return 'Total: ' + total + topTxt(fIPs.length ? fIPs : aIPs);
+            }
+          }
+        }
+      },
+      scales: {
+        x: { stacked: stackedMode, ticks: { color: '#a0aec0' }, grid: { display: false, color: '#4a5568' } },
+        y: { beginAtZero: true, stacked: stackedMode, ticks: { color: '#a0aec0' }, grid: { color: '#4a5568' } }
+      }
+    };
+  }
+  function drawAlertChart(payload){
+    const s = payload.series || {labels:[], failed:[], accepted:[]};
+    const ctx = document.getElementById('alertChart');
+    if(!ctx) return;
+    alertChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: s.labels, datasets: [
+        { label: 'Échecs', data: s.failed, backgroundColor: 'rgba(239,68,68,0.7)' },
+        { label: 'Acceptés', data: s.accepted, backgroundColor: 'rgba(34,197,94,0.7)' }
+      ] },
+      options: buildAlertOptions()
+    });
+    // store the series payload for tooltips
+    alertChart.__seriesPayload = s;
+  }
+  // Toggle stacked / side-by-side
+  (function(){
+    const btn = document.getElementById('toggleStackBtn');
+    if(!btn) return;
+    function syncLabel(){ btn.textContent = stackedMode ? 'Barres empilées' : 'Barres côte-à-côte'; }
+    syncLabel();
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      stackedMode = !stackedMode;
+      syncLabel();
+      if(alertChart){
+        alertChart.options.scales.x.stacked = stackedMode;
+        alertChart.options.scales.y.stacked = stackedMode;
+        alertChart.update();
+      }
+    });
+  })();
+
+  // Doughnut/Pie chart (SSH activity)
+  let faAcChart=null;
+  let faAcType='doughnut'; // 'doughnut' or 'pie'
+  function drawFaAcDoughnut(payload){
+    const totals = (payload.data && payload.data.totals) || {};
+    const failed = totals.failed || 0;
+    const accepted = totals.accepted || 0;
+    const ctx = document.getElementById('faAcDoughnut');
+    if(!ctx) return;
+    faAcChart = new Chart(ctx, {
+      type: faAcType,
+      data: { labels: ['Échecs','Acceptés'], datasets: [{ data: [failed, accepted], backgroundColor: ['#ef4444','#22c55e'], borderWidth: 0 }] },
+      options: { responsive: true, cutout: faAcType==='doughnut' ? '70%' : 0, plugins: { legend: { position: 'bottom', labels: { color: '#a0aec0' } }, tooltip: { enabled: true } } }
+    });
+    updateFaAcText(payload);
+    updateFaAcTopIps(payload);
+  }
+  function updateFaAcDoughnut(payload){
+    if(!faAcChart) return;
+    const totals = (payload.data && payload.data.totals) || {};
+    faAcChart.data.datasets[0].data = [totals.failed || 0, totals.accepted || 0];
+    faAcChart.update();
+    updateFaAcText(payload);
+    updateFaAcTopIps(payload);
+  }
+  function updateFaAcText(payload){
+    const totals = (payload.data && payload.data.totals) || {};
+    const el = document.getElementById('faAcTotals');
+    if(!el) return;
+    const failed = totals.failed || 0;
+    const accepted = totals.accepted || 0;
+    const total = failed + accepted;
+    el.textContent = `Échecs: ${failed} • Acceptés: ${accepted} • Total: ${total}`;
+  }
+  function updateFaAcTopIps(payload){
+    const topFailed = (payload.data && payload.data.top_failed_ips) ? payload.data.top_failed_ips.slice(0,10) : [];
+    const topAccepted = (payload.data && payload.data.top_accepted_ips) ? payload.data.top_accepted_ips.slice(0,10) : [];
+    const ulF = document.getElementById('faAcTopFailed');
+    const ulA = document.getElementById('faAcTopAccepted');
+    if(ulF){ ulF.innerHTML = topFailed.length ? topFailed.map(([ip,c])=>`<li class="flex justify-between"><span>${ip}</span><span class="text-gray-400">${c}</span></li>`).join('') : '<li class="text-gray-500">—</li>'; }
+    if(ulA){ ulA.innerHTML = topAccepted.length ? topAccepted.map(([ip,c])=>`<li class="flex justify-between"><span>${ip}</span><span class="text-gray-400">${c}</span></li>`).join('') : '<li class="text-gray-500">—</li>'; }
+  }
+  // Toggle doughnut/pie
+  (function(){
+    const btn = document.getElementById('toggleFaAcTypeBtn');
+    if(!btn) return;
+    function sync(){ btn.textContent = (faAcType==='doughnut') ? 'Donut' : 'Secteur'; }
+    sync();
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      faAcType = (faAcType==='doughnut') ? 'pie' : 'doughnut';
+      sync();
+      const payload = initial; // reuse last known payload
+      if(faAcChart){ faAcChart.destroy(); faAcChart=null; }
+      drawFaAcDoughnut(payload);
+    });
+  })();
+  function drawCountriesList(payload){
+    const countries = (payload.geo_banned && payload.geo_banned.countries) ? payload.geo_banned.countries.slice(0,10) : [];
+    const ul = document.getElementById('countriesList');
+    if (!ul) return;
+    ul.innerHTML = '';
+    countries.forEach(([country, count]) => {
+      // Attempt to derive country code from points for flag emoji
+      const points = (payload.geo_banned.points || []).filter(p => p.country === country && p.countryCode);
+      const cc = points.length ? points[0].countryCode : null;
+      const flag = cc ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 127397 + c.charCodeAt())) : '';
+      const li = document.createElement('li');
+      li.className = 'flex items-center justify-between';
+      li.innerHTML = `<span>${flag ? flag + ' ' : ''}${country}</span><span class="text-gray-300">${count}</span>`;
+      ul.appendChild(li);
+    });
+  }
+
+  // Top failed bar chart
+  let topFailedChart=null;
+  let tfMode='barV'; // 'barV' | 'barH' | 'table'
+  let tfScale='linear'; // 'linear' | 'logarithmic'
+  let tfTopN=10;
+  function computeTopFailed(payload){
+    const topFailed = (payload.data && payload.data.top_failed_ips) ? payload.data.top_failed_ips : [];
+    return topFailed.slice(0, tfTopN);
+  }
+  function applyTfButtonsActive(){
+    function setActive(el, active){ if(!el) return; el.classList.toggle('bg-gray-700/50', active); }
+    setActive(document.getElementById('tfModeBarV'), tfMode==='barV');
+    setActive(document.getElementById('tfModeBarH'), tfMode==='barH');
+    setActive(document.getElementById('tfModeTable'), tfMode==='table');
+    setActive(document.getElementById('tfScaleLin'), tfScale==='linear');
+    setActive(document.getElementById('tfScaleLog'), tfScale==='logarithmic');
+  }
+  function renderTopFailed(payload){
+    const top = computeTopFailed(payload);
+    const labels = top.map(x=>x[0]);
+    const values = top.map(x=>x[1]);
+    const chartWrap = document.getElementById('tfChartWrap');
+    const tableWrap = document.getElementById('tfTableWrap');
+    if(tfMode==='table'){
+      if(chartWrap) chartWrap.classList.add('hidden');
+      if(tableWrap) tableWrap.classList.remove('hidden');
+      const tbody = document.getElementById('tfTableBody');
+      if(tbody){ tbody.innerHTML = top.map(([ip,c])=>`<tr class=\"border-t border-gray-700\"><td class=\"py-2\">${ip}</td><td class=\"py-2 text-right\">${c}</td></tr>`).join(''); }
+      return;
+    } else {
+      if(chartWrap) chartWrap.classList.remove('hidden');
+      if(tableWrap) tableWrap.classList.add('hidden');
+    }
+    const ctx = document.getElementById('topFailedBar');
+    if(topFailedChart){ topFailedChart.destroy(); topFailedChart=null; }
+    const isHorizontal = tfMode==='barH';
+    topFailedChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ label: 'Échecs', data: values, backgroundColor: '#ef4444' }] },
+      options: {
+        indexAxis: isHorizontal ? 'y' : 'x',
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true, type: isHorizontal ? 'category' : tfScale, ticks: { color: '#a0aec0' }, grid: { color: '#4a5568' } },
+          x: { beginAtZero: true, type: isHorizontal ? tfScale : 'category', ticks: { color: '#a0aec0' }, grid: { color: '#4a5568', display: isHorizontal ? true : false } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+  function drawTopFailedBar(payload){
+    bindTfControls(payload);
+    renderTopFailed(payload);
+  }
+  function bindTfControls(payload){
+    const bV = document.getElementById('tfModeBarV');
+    const bH = document.getElementById('tfModeBarH');
+    const bT = document.getElementById('tfModeTable');
+    const sLin = document.getElementById('tfScaleLin');
+    const sLog = document.getElementById('tfScaleLog');
+    const sel = document.getElementById('tfTopN');
+    if(bV) bV.addEventListener('click', e=>{ e.preventDefault(); tfMode='barV'; applyTfButtonsActive(); renderTopFailed(payload); });
+    if(bH) bH.addEventListener('click', e=>{ e.preventDefault(); tfMode='barH'; applyTfButtonsActive(); renderTopFailed(payload); });
+    if(bT) bT.addEventListener('click', e=>{ e.preventDefault(); tfMode='table'; applyTfButtonsActive(); renderTopFailed(payload); });
+    if(sLin) sLin.addEventListener('click', e=>{ e.preventDefault(); tfScale='linear'; applyTfButtonsActive(); renderTopFailed(payload); });
+    if(sLog) sLog.addEventListener('click', e=>{ e.preventDefault(); tfScale='logarithmic'; applyTfButtonsActive(); renderTopFailed(payload); });
+    if(sel) sel.addEventListener('change', e=>{ tfTopN=parseInt(e.target.value||'10',10); renderTopFailed(payload); });
+    applyTfButtonsActive();
+  }
+
+  // Map
+  let map=null, markersLayer=null;
+  function flagEmoji(cc){ if(!cc || cc.length!==2) return ''; const codePoints = [...cc.toUpperCase()].map(c => 127397 + c.charCodeAt()); return String.fromCodePoint(...codePoints); }
+  function drawMap(payload){
+    const gf = payload.geo_failed || { points: [] };
+    const gb = payload.geo_banned || { points: [] };
+    if(!window.L) return; // Leaflet not loaded
+    if(!map){
+      map = L.map('map').setView([20,0], 2);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19}).addTo(map);
+      markersLayer = L.layerGroup().addTo(map);
+    }
+    markersLayer.clearLayers();
+    // Failed points (blue markers)
+    (gf.points || []).forEach(p => {
+      if (p.lat && p.lon){
+        const icon = new L.Icon.Default();
+        const m = L.marker([p.lat, p.lon], { icon }).addTo(markersLayer);
+        const flag = flagEmoji(p.countryCode);
+        const title = (flag ? flag+ ' ' : '') + (p.country || 'Unknown') + ' — ' + (p.ip || '') + ' (failed: ' + (p.count||0) + ')';
+        m.bindPopup(title);
+      }
+    });
+    // Banned points (red circle markers)
+    (gb.points || []).forEach(p => {
+      if (p.lat && p.lon){
+        const circle = L.circleMarker([p.lat, p.lon], { radius: 6, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.7 }).addTo(markersLayer);
+        const flag = flagEmoji(p.countryCode);
+        const title = (flag ? flag+ ' ' : '') + (p.country || 'Unknown') + ' — ' + (p.ip || '') + ' (banned in ' + (p.count||0) + ' jail(s))';
+        circle.bindPopup(title);
+      }
+    });
+  }
+
+  function updateFromPayload(payload){
+    // cards
+    updateCards(payload);
+    // line
+    if(alertChart){
+      const s = payload.series || {labels:[], failed:[], accepted:[]};
+      alertChart.data.labels = s.labels;
+      alertChart.data.datasets[0].data = s.failed;
+      if (alertChart.data.datasets[1]) {
+        alertChart.data.datasets[1].data = s.accepted;
+      }
+      // refresh series payload for tooltip IPs
+      alertChart.__seriesPayload = s;
+      alertChart.update();
+    }
+    // update camembert
+    updateFaAcDoughnut(payload);
+    // update countries list
+    drawCountriesList(payload);
+    // top failed
+    renderTopFailed(payload);
+    // map
+    drawMap(payload);
+  }
+
+  function refresh(){
+    fetch(`/api/ssh/summary?since=${encodeURIComponent(currentSince)}`)
+      .then(r=>r.json())
+      .then(j=>{ if(j.ok){ updateFromPayload(j); }})
+      .catch(()=>{});
+  }
+
+  document.getElementById('since-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    const sel = document.getElementById('since-select');
+    currentSince = sel.value;
+    const url = new URL(window.location);
+    url.searchParams.set('since', currentSince);
+    window.history.replaceState({}, '', url);
+    refresh();
+  });
+  // Apply immediately on change (useful for mobile where button is hidden)
+  (function(){
+    const sel = document.getElementById('since-select');
+    if(sel){
+      sel.addEventListener('change', function(){
+        currentSince = sel.value;
+        const url = new URL(window.location);
+        url.searchParams.set('since', currentSince);
+        window.history.replaceState({}, '', url);
+        refresh();
+      });
+    }
+  })();
+
+  // init
+  updateCards(initial);
+  drawAlertChart(initial);
+  drawFaAcDoughnut(initial);
+  drawTopFailedBar(initial);
+  drawCountriesList(initial);
+  drawMap(initial);
+  refresh();
+  setInterval(refresh, 10000);
+})();
+</script>
+{% endblock %}

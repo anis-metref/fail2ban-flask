@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-1">Configuration: {{ jail }}</h1>
+<p class="text-sm text-gray-400 mb-4">Fichier persistant: <code class="text-gray-300">{{ defaults_path }}</code></p>
+
+<form method="post" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <div>
+    <label class="block text-sm mb-1">bantime</label>
+    <input class="w-full px-3 py-2 rounded bg-gray-900 border border-gray-700 text-white" type="text" name="bantime" value="{{ values.bantime or '' }}" placeholder="ex: 600">
+    <div class="text-xs text-gray-400 mt-1">Durée (ex: 600, 10m, 1h, 1d) — formats natifs Fail2ban acceptés.</div>
+  </div>
+  <div>
+    <label class="block text-sm mb-1">findtime</label>
+    <input class="w-full px-3 py-2 rounded bg-gray-900 border border-gray-700 text-white" type="text" name="findtime" value="{{ values.findtime or '' }}" placeholder="ex: 600">
+    <div class="text-xs text-gray-400 mt-1">Fenêtre (ex: 600, 10m, 1h) — formats natifs Fail2ban acceptés.</div>
+  </div>
+  <div>
+    <label class="block text-sm mb-1">maxretry</label>
+    <input class="w-full px-3 py-2 rounded bg-gray-900 border border-gray-700 text-white" type="number" name="maxretry" value="{{ values.maxretry or '' }}" min="1" step="1">
+    <div class="text-xs text-gray-400 mt-1">Nombre maximal de tentatives avant ban.</div>
+  </div>
+  <div class="md:col-span-3 flex gap-2">
+    <button class="px-3 py-2 rounded bg-blue-600 text-white" type="submit">Enregistrer</button>
+    <a class="px-3 py-2 rounded bg-gray-700 text-white" href="{{ url_for('config_index') }}">Retour</a>
+  </div>
+</form>
+
+<div class="mt-4 flex gap-2">
+  <form method="post" action="{{ url_for('reload_jail', jail=jail) }}?next={{ url_for('config_jail', jail=jail) }}" onsubmit="return confirm('Recharger le jail {{ jail }} ?');">
+    <button class="px-3 py-2 rounded border border-gray-500 text-gray-300 hover:bg-gray-600/30 text-sm" type="submit">Recharger</button>
+  </form>
+  <form method="post" action="{{ url_for('restart_jail', jail=jail) }}?next={{ url_for('config_jail', jail=jail) }}" onsubmit="return confirm('Redémarrer le jail {{ jail }} ?');">
+    <button class="px-3 py-2 rounded border border-red-600 text-red-400 hover:bg-red-600/20 text-sm" type="submit">Redémarrer</button>
+  </form>
+</div>
+{% endblock %}

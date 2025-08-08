@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Jail: {{ jail }}</h1>
+
+<div class="mb-4 rounded border border-gray-700">
+  <div class="p-4">
+    <h2 class="text-lg font-semibold mb-2">Statistiques</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-gray-300">
+      <div>Currently failed: <span class="font-semibold text-white">{{ status.currently_failed }}</span></div>
+      <div>Total failed: <span class="font-semibold text-white">{{ status.total_failed }}</span></div>
+      <div>Currently banned: <span class="font-semibold text-white">{{ status.currently_banned }}</span></div>
+      <div>Total banned: <span class="font-semibold text-white">{{ status.total_banned }}</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="mb-4 rounded border border-gray-700">
+  <div class="p-4">
+    <h2 class="text-lg font-semibold mb-1">Gestion IPs</h2>
+    <p class="text-sm text-gray-400 mb-3">Les actions ban/unban n'affectent pas la configuration persistante.</p>
+    <form class="flex flex-wrap gap-2" method="post" action="{{ url_for('ban_ip', jail=jail) }}">
+      <input class="px-3 py-2 rounded bg-gray-900 border border-gray-700 text-white" type="text" name="ip" placeholder="Ex: 1.2.3.4">
+      <button class="px-3 py-2 rounded bg-red-600 text-white" type="submit">Bannir</button>
+    </form>
+    <form class="flex flex-wrap gap-2 mt-3" method="post" action="{{ url_for('unban_ip', jail=jail) }}">
+      <input class="px-3 py-2 rounded bg-gray-900 border border-gray-700 text-white" type="text" name="ip" placeholder="Ex: 1.2.3.4">
+      <button class="px-3 py-2 rounded bg-green-600 text-white" type="submit">Dé-bannir</button>
+    </form>
+  </div>
+</div>
+
+<div class="rounded border border-gray-700">
+  <div class="p-4">
+    <h2 class="text-lg font-semibold mb-2">IP bannies</h2>
+    {% if status.banned_list %}
+    <ul class="divide-y divide-gray-700">
+      {% for ip in status.banned_list %}
+      <li class="py-2 grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
+        <div class="md:col-span-2 flex items-center gap-3">
+          <span class="font-mono">{{ ip }}</span>
+          {% set ts = banned_times.get(ip) %}
+          <span class="text-xs text-gray-400">{% if ts %}Bannie le {{ ts }}{% else %}Date/heure inconnue{% endif %}</span>
+        </div>
+        <div class="md:col-span-1 text-right">
+          <form method="post" action="{{ url_for('unban_ip', jail=jail) }}">
+            <input type="hidden" name="ip" value="{{ ip }}">
+            <button class="px-2 py-1 rounded border border-green-600 text-green-400 hover:bg-green-600/20 text-xs" type="submit">Dé-bannir</button>
+          </form>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-gray-300">Aucune IP bannie.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

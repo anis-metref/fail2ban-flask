@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-semibold">Administration des utilisateurs</h1>
+  {% if current_user.is_authenticated and current_user.is_admin %}
+  <form method="post" action="{{ url_for('admin_user_create') }}" class="flex gap-2">
+    <input class="px-3 py-2 rounded bg-gray-900 border border-gray-700 text-white" type="text" name="username" placeholder="nouvel utilisateur" required>
+    <input class="px-3 py-2 rounded bg-gray-900 border border-gray-700 text-white" type="password" name="password" placeholder="mot de passe" required>
+    <button class="px-3 py-2 rounded bg-blue-600 text-white" type="submit">Créer</button>
+  </form>
+  {% endif %}
+</div>
+<div class="rounded border border-gray-700">
+  <div class="p-4 overflow-x-auto">
+    <table class="min-w-full text-left text-sm">
+      <thead>
+        <tr class="text-gray-400">
+          <th class="py-2">ID</th>
+          <th class="py-2">Utilisateur</th>
+          <th class="py-2 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr class="border-t border-gray-700">
+          <td class="py-2">{{ u.id }}</td>
+          <td class="py-2 font-mono">{{ u.username }}</td>
+          <td class="py-2 text-right">
+            {% if current_user.is_authenticated and current_user.is_admin %}
+            <form method="post" action="{{ url_for('admin_user_reset', uid=u.id) }}" class="inline">
+              <input class="px-2 py-1 rounded bg-gray-900 border border-gray-700 text-white" type="password" name="password" placeholder="nouveau mot de passe" required>
+              <button class="px-2 py-1 rounded border border-blue-600 text-blue-400 hover:bg-blue-600/20 text-xs" type="submit">Réinitialiser</button>
+            </form>
+            {% if current_user.id != u.id %}
+            <form method="post" action="{{ url_for('admin_user_delete', uid=u.id) }}" class="inline ml-2" onsubmit="return confirm('Supprimer l\'utilisateur {{ u.username }} ?');">
+              <button class="px-2 py-1 rounded border border-red-600 text-red-400 hover:bg-red-600/20 text-xs" type="submit">Supprimer</button>
+            </form>
+            {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
