@@ -18,6 +18,7 @@ Fonctionnalités principales:
 - python-pip, python-venv, fail2ban 
 
 # Télécharger les fichiers
+```
 git clone https://github.com/anis-metref/fail2ban-flask.git
 cd fail2ban-flask
 ```
