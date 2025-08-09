@@ -10,6 +10,7 @@ Application web Flask pour administrer Fail2ban de façon simple et sécurisée.
 - **Cartes géographiques** : Voir d'où viennent les attaques
 - **Configuration** : Modifier les paramètres des jails
 - **Logs** : Analyser l'activité de sécurité
+- **Gestion des utilisateurs** : créer, gérer et supprimer des comptes utilisateurs
 - **Authentification** : login/logout
 
 
