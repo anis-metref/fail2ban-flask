@@ -22,7 +22,7 @@ Application web Flask pour administrer Fail2ban de façon simple et sécurisée.
 git clone https://github.com/anis-metref/fail2ban-flask.git
 cd fail2ban-flask
 ```
-
+Activer votre environnement virtuel.
 ```
 python3 -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
