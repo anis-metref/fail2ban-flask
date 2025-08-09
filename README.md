@@ -14,8 +14,13 @@ Fonctionnalités principales:
 
 
 ## Installation 
-Pré‑requis: Python 3.10+.
-python-pip, python-venv, fail2ban 
+- Pré‑requis: Python 3.10+.
+- python-pip, python-venv, fail2ban 
+
+# Télécharger les fichiers
+git clone https://github.com/anis-metref/fail2ban-flask.git
+cd fail2ban-flask
+```
 
 ```
 python -m venv .venv
