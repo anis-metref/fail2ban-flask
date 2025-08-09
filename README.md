@@ -34,13 +34,25 @@ Copier le fichier .env.example pour ajuster certains paramètres.
 ```
 cp .env.example  .env
 ```
-
 ## Variables d’environnement
 - FLASK_SECRET_KEY=change-me
 - F2B_CMD=fail2ban-client    #chemin de fail2ban-client
 - F2B_SUDO=1                 #pour préfixer par sudo -n
 - SSH_SUDO=1                 #pour `journalctl` via sudo -n
 - F2B_DEFAULTS_FILE=/etc/fail2ban/jail.d/99-ui.conf   #fichier de conf de fail2ban
+
+
+ Créer le fichier :
+   ```bash
+   sudo touch /etc/fail2ban/jail.d/99-ui.conf
+   ```
+ Ajouter :
+   ```ini
+   [sshd]
+   enabled = true
+   ```
+ **Remarque** :  
+   Si un autre fichier `jail` configure déjà `[sshd]`, pense à le **désactiver** pour que celui-ci soit pris en compte.
 
 
 ## Lancement
