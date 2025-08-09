@@ -29,7 +29,7 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Copier le fichier .env.example pour ajuster certains paramètres des variables d’environnement.
+Copier le fichier .env.example pour ajuster certains paramètres.
 
 ```
 cp .env.example  .env
