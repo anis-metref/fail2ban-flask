@@ -4,13 +4,13 @@
 Application web Flask pour administrer Fail2ban de façon simple et sécurisée.
 
 ## Fonctionnalités principales:
-- Dashboard : Vue d'ensemble des menaces
-- SSH : Analyse des connexions ssh
-- Gestion IPs : Bannir/débannir facilement
-- Cartes géographiques : Voir d'où viennent les attaques
-- Configuration : Modifier les paramètres des jails
-- Logs : Analyser l'activité de sécurité
-- Authentification: login/logout
+- **Dashboard** : Vue d'ensemble des menaces
+- **SSH** : Analyse des connexions ssh
+- **Gestion IPs** : Bannir/débannir facilement
+- **Cartes géographiques** : Voir d'où viennent les attaques
+- **Configuration** : Modifier les paramètres des jails
+- **Logs** : Analyser l'activité de sécurité
+- **Authentification** : login/logout
 
 
 ## Installation 
