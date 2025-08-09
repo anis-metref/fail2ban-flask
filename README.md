@@ -16,7 +16,7 @@ Application web Flask pour administrer Fail2ban de façon simple et sécurisée.
 
 ## Installation 
 - Pré‑requis: Python 3.10+.
-- python-pip, python-venv, fail2ban 
+- python3-pip, python3-venv et fail2ban 
 
 # Télécharger les fichiers
 ```
